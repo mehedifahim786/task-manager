@@ -1,47 +1,33 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const app = express();
 const PORT = 3000;
-const tasksFile = 'tasks.json';
 
-app.use(express.static('public'));
+// Serve static files from "public" folder
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
-// Load tasks
-app.get('/api/tasks', (req, res) => {
-  fs.readFile(tasksFile, (err, data) => {
-    if (err) return res.status(500).send('Error reading file');
-    res.json(JSON.parse(data));
-  });
+app.get("/tasks", (req, res) => {
+  const tasks = JSON.parse(fs.readFileSync("tasks.json"));
+  res.json(tasks);
 });
 
-// Add new task
-app.post('/api/tasks', (req, res) => {
-  const newTask = req.body;
-  fs.readFile(tasksFile, (err, data) => {
-    const tasks = JSON.parse(data);
-    newTask.id = Date.now();
-    tasks.push(newTask);
-    fs.writeFile(tasksFile, JSON.stringify(tasks), () => {
-      res.status(201).json(newTask);
-    });
-  });
+app.post("/tasks", (req, res) => {
+  const tasks = JSON.parse(fs.readFileSync("tasks.json"));
+  const newTask = { id: Date.now(), title: req.body.title };
+  tasks.push(newTask);
+  fs.writeFileSync("tasks.json", JSON.stringify(tasks, null, 2));
+  res.status(201).json(newTask);
 });
 
-// Delete task
-app.delete('/api/tasks/:id', (req, res) => {
-  const taskId = parseInt(req.params.id);
-  fs.readFile(tasksFile, (err, data) => {
-    let tasks = JSON.parse(data);
-    tasks = tasks.filter(t => t.id !== taskId);
-    fs.writeFile(tasksFile, JSON.stringify(tasks), () => {
-      res.status(200).json({ message: 'Deleted' });
-    });
-  });
+app.delete("/tasks/:id", (req, res) => {
+  let tasks = JSON.parse(fs.readFileSync("tasks.json"));
+  tasks = tasks.filter(task => task.id !== parseInt(req.params.id));
+  fs.writeFileSync("tasks.json", JSON.stringify(tasks, null, 2));
+  res.status(200).json({ message: "Task deleted" });
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
